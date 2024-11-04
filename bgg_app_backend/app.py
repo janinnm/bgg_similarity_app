@@ -40,19 +40,13 @@ def similarity_score(ratings_a, ratings_b):
     ratings_a = {k: v for k, v in ratings_a.items() if k in top_boardgames_ids}
     ratings_b= {k: v for k, v in ratings_b.items() if k in top_boardgames_ids}
 
-
     common_keys = set(ratings_a.keys()).intersection(ratings_b.keys())
     sorted_common_keys = sorted(common_keys)
-
-    print(sorted_common_keys)
 
     # All unrated should be turned to 0
     # Reference: https://grouplens.org/blog/similarity-functions-for-user-user-collaborative-filtering/
     ratings_a = {k: (0 if v == "N/A" else v) for k, v in ratings_a.items()}
     ratings_b = {k: (0 if v == "N/A" else v) for k, v in ratings_b.items()}
-
-    print(ratings_a)
-    print(ratings_b)
 
     a = [ratings_a[key] for key in sorted_common_keys]
     b = [ratings_b[key] for key in sorted_common_keys]
@@ -64,7 +58,6 @@ def similarity_score(ratings_a, ratings_b):
     b = b.reshape(1, -1)
 
     similarity = cosine_similarity(a, b)
-    print(similarity[0][0])
 
     return np.round(similarity[0][0], 2)
 
@@ -125,40 +118,23 @@ def compare():
 
 def get_temporary_users(response, ratings_dict, name):
 
-    matching_usernames = {}
     all_usernames = []
     for boardgame in response['boardgames']['boardgame']:
         boardgame_id = boardgame['@objectid']
-    
-    if boardgame_id in ratings_dict:
-        target_rating = ratings_dict[boardgame_id]
-        usernames = set()
-        
-        comments = boardgame.get('comment', [])
-        if isinstance(comments, dict):
-            comments = [comments]
-        
-        for comment in comments:
-            user_check = comment.get('@username')
-            other_user_rating = comment.get('@rating')
-            if other_user_rating == "N/A":
-                other_user_rating = 0
-            if user_check != name:
-                usernames.add(user_check)
-                all_usernames.append(user_check)
-        
-        if usernames:
-            matching_usernames[boardgame_id] = usernames
+
+        if boardgame_id in ratings_dict:
+            comments = boardgame.get('comment', [])
+
+            for comment in comments:
+                user_check = comment.get('@username')
+                if user_check != name:
+                    all_usernames.append(user_check)
         
     return all_usernames
 
-
-# Function to create a dictionary of user counts
 def create_user_count_dict(data):
     item_count = dict(Counter(data))
-
     sorted_item_count = dict(sorted(item_count.items(), key=lambda x: x[1], reverse=True))
-
     top_10_items = dict(list(sorted_item_count.items())[:10])
 
     return top_10_items
@@ -167,8 +143,6 @@ def create_user_count_dict(data):
 def similar_users():
     data = request.json
     name = data.get('name')
-
-    print(name)
 
     api_url= "https://boardgamegeek.com/xmlapi/collection/{name}".format(name = name)
     response = fetch_data(api_url)
@@ -184,6 +158,7 @@ def similar_users():
 
     ids_string = list(ratings.keys())
     all_abc = []
+    # batch requests as BGG server throws an error with message: Cannot load more than 20 items
     for i in range(0, len(ids_string), 20):
         batch = ids_string[i:i + 20]
         batch_string = ','.join(batch)
