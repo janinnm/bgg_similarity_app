@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import React from "react";
@@ -6,6 +6,8 @@ import React from "react";
 function Users() {
   const [formData, setFormData] = useState({ name: "" });
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const hasShownSuccessToast = useRef(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -16,6 +18,7 @@ function Users() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const response = await fetch("/users", {
@@ -35,13 +38,25 @@ function Users() {
         const result = await response.json();
         const arrayData = Array.isArray(result) ? result : Object.keys(result);
         setItems(arrayData);
-        toast.success("Operation successful!");
+        if (!hasShownSuccessToast.current) {
+          toast.success("Success");
+          hasShownSuccessToast.current = true;
+        }
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const Loader = () => {
+    return (
+      <span className="text-sm/6 font-semibold text-gray-900">Loading...</span>
+    );
+  };
+
+  // container and form design: https://tailwindui.com/components/preview
   return (
     <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
       <form className="space-y-6" onSubmit={handleSubmit}>
@@ -72,35 +87,37 @@ function Users() {
 
       <ToastContainer
         position="bottom-right"
-        autoClose={3000}
+        autoClose={1000}
         hideProgressBar={false}
         closeOnClick
-        pauseOnHover
         draggable
         theme="light"
       />
 
-      <div className="flex items-center justify-center">
-        {items.length > 0 && (
-          <div className="p-4 max-h-96">
-            <p className="text-sm/6 font-bold text-gray-900">
-              {" "}
-              Check these users 🧑‍🤝‍🧑{" "}
-            </p>
-            {items.map((item) => (
-              <div
-                key={item}
-                className="min-w-0 flex-auto items-center justify-center"
-              >
-                <p className="text-sm/6 font-semibold text-gray-900">
-                  {"◾ "}
-                  {item}{" "}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {loading && <Loader />}
+      {!loading && (
+        <div className="flex items-center justify-center">
+          {items.length > 0 && (
+            <div className="p-4 max-h-96">
+              <p className="text-sm/6 font-bold text-gray-900">
+                {" "}
+                Check these users 🧑‍🤝‍🧑{" "}
+              </p>
+              {items.map((item) => (
+                <div
+                  key={item}
+                  className="min-w-0 flex-auto items-center justify-center"
+                >
+                  <p className="text-sm/6 font-semibold text-gray-900">
+                    {"◾ "}
+                    {item}{" "}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import React from "react";
 
 function Score() {
   const [formData, setFormData] = useState({ name1: "", name2: "" });
-  const [apiResult, setApiResult] = useState(null);
+  const [apiResult, setApiResult] = useState({
+    result: {
+      score: null,
+      name1: "",
+      name2: "",
+    },
+  });
+  const [loading, setLoading] = useState(false);
+  const hasShownSuccessToast = useRef(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -16,6 +24,8 @@ function Score() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    hasShownSuccessToast.current = false;
 
     try {
       const response = await fetch("/compare", {
@@ -34,18 +44,29 @@ function Score() {
       } else {
         const result = await response.json();
         setApiResult(result);
-        toast.success("Operation successful!");
+        if (!hasShownSuccessToast.current) {
+          toast.success("Success");
+          hasShownSuccessToast.current = true;
+        }
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const Loader = () => {
+    return (
+      <span className="text-sm/6 font-semibold text-gray-900">Loading...</span>
+    );
   };
 
   const PercentageDisplay = ({ apiResult }) => {
     const percentage = (apiResult.result.score * 100).toFixed(2) + "%";
 
     let text = "";
-    if (apiResult.result.score * 100 > 75) {
+    if (apiResult.result.score * 100 >= 70) {
       text = `Congratulations! 🎉 ${apiResult.result.name1} is ${percentage} similar to ${apiResult.result.name2}`;
     } else {
       text = `${apiResult.result.name1} is only ${percentage} similar to ${apiResult.result.name2} 😢`;
@@ -54,6 +75,7 @@ function Score() {
     return <div>{text}</div>;
   };
 
+  // container and form design: https://tailwindui.com/components/preview
   return (
     <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
       <form className="space-y-6" onSubmit={handleSubmit}>
@@ -98,15 +120,15 @@ function Score() {
 
       <ToastContainer
         position="bottom-right"
-        autoClose={3000}
+        autoClose={1000}
         hideProgressBar={false}
         closeOnClick
-        pauseOnHover
         draggable
         theme="light"
       />
 
-      {apiResult && (
+      {loading && <Loader />}
+      {!loading && apiResult.result.score && (
         <div className="py-4 max-h-96">
           <div className="text-sm/6 font-semibold text-gray-900">
             <PercentageDisplay apiResult={apiResult} />
