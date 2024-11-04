@@ -11,5 +11,5 @@ Run frontend:
 
 ```
 cd bgg_app_frontend
-npm run start
+npm start
 ```
